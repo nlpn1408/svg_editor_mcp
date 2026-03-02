@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "svg-editor-mcp": {
+      "command": "node",
+      "args": ["D:/phuongnam/src_code/svg_editor_mcp/dist/mcp-server.js"],
+      "cwd": "D:/phuongnam/src_code/octokit/svg_editor"
+    }
+  }
+}
