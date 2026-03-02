@@ -155,28 +155,69 @@ src/
 ### Build & Run
 
 ```bash
-# Compile TypeScript
-npx tsc mcp/*.ts --outDir mcp/dist --module esnext --target es2022 --moduleResolution bundler
+# Clone the repository
+git clone https://github.com/nlpn1408/svg_editor_mcp.git
+cd svg_editor_mcp
 
-# Run server (called by Cursor/Claude)
-node mcp/dist/mcp-server.js
+# Install dependencies
+npm install
+
+# Build TypeScript
+npm run build
+
+# Test server
+node dist/mcp-server.js
 ```
 
 ### Configure in Cursor
 
-Add to MCP settings:
+Add to MCP settings (Ctrl+Shift+P → "Preferences: Open Settings (JSON)"):
+
+**Option 1: Use from GitHub (Recommended - No local setup needed)**
 
 ```json
 {
   "mcpServers": {
-    "project-architect": {
-      "command": "node",
-      "args": ["mcp/dist/mcp-server.js"],
-      "cwd": "d:/phuongnam/src_code/octokit/svg_editor"
+    "svg-editor-mcp": {
+      "command": "npx",
+      "args": ["-y", "github:nlpn1408/svg_editor_mcp"]
     }
   }
 }
 ```
+
+**Option 2: Use local build**
+
+```json
+{
+  "mcpServers": {
+    "svg-editor-mcp": {
+      "command": "node",
+      "args": ["/absolute/path/to/svg_editor_mcp/dist/mcp-server.js"],
+      "cwd": "/absolute/path/to/your/project"
+    }
+  }
+}
+```
+
+Replace:
+- `/absolute/path/to/svg_editor_mcp/` with your actual clone path
+- `/absolute/path/to/your/project` with your project root where you want to use the MCP
+
+Example (Windows):
+```json
+{
+  "mcpServers": {
+    "svg-editor-mcp": {
+      "command": "node",
+      "args": ["C:/Users/YourName/projects/svg_editor_mcp/dist/mcp-server.js"],
+      "cwd": "C:/Users/YourName/projects/my-clean-architecture-app"
+    }
+  }
+}
+```
+
+**Important:** Restart Cursor after adding config!
 
 ---
 
