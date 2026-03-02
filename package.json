@@ -1,0 +1,19 @@
+{
+  "name": "project-architect-mcp",
+  "version": "2.0.0",
+  "description": "MCP server for SVG Editor Clean Architecture navigation",
+  "type": "module",
+  "main": "dist/mcp-server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/mcp-server.js",
+    "dev": "tsc && node dist/mcp-server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.8.0"
+  }
+}
