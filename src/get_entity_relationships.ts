@@ -1,8 +1,4 @@
-import { exec as execChildProcess } from 'child_process';
-import { promisify } from 'util';
-import fs from 'fs/promises';
-
-const exec = promisify(execChildProcess);
+import { runRg } from './utils/run-rg.js';
 
 interface EntityRelationships {
   entity: string;
@@ -26,11 +22,12 @@ export const getEntityRelationshipsTool = {
   },
   handler: async (args: { entityName: string }) => {
     let { entityName } = args;
-    
-    // Normalize entity name
+
     if (!entityName.endsWith('Entity')) {
       entityName = `${entityName}Entity`;
     }
+
+    const baseName = entityName.replace(/Entity$/, '');
 
     try {
       const relationships: EntityRelationships = {
@@ -39,16 +36,25 @@ export const getEntityRelationshipsTool = {
         usedBy: []
       };
 
-      // 1. Find entity file
-      const entityFile = await exec(
-        `rg -l "class ${entityName}" src/domain/entities -g "*.ts" || true`
-      );
+      // 1. Find entity file (support subfolders: checkpoint/Checkpoint.ts)
+      let entityFile = await runRg([
+        '-l', `class ${entityName}`,
+        'src/domain/entities',
+        '-g', '*.ts'
+      ]);
+      if (!entityFile) {
+        entityFile = await runRg([
+          '-l', `class ${baseName}`,
+          'src/domain/entities',
+          '-g', '*.ts'
+        ]);
+      }
 
-      if (!entityFile.stdout.trim()) {
+      if (!entityFile) {
         return {
-          content: [{ 
-            type: "text", 
-            text: `Entity "${entityName}" not found in src/domain/entities/` 
+          content: [{
+            type: "text",
+            text: `Entity "${entityName}" not found in src/domain/entities/`
           }],
           isError: true
         };
@@ -56,46 +62,53 @@ export const getEntityRelationshipsTool = {
 
       // 2. Find repository interface (I prefix)
       const repoName = entityName.replace('Entity', 'Repository');
-      const repoInterface = await exec(
-        `rg -l "interface I${repoName}" src/domain/repositories -g "*.ts" || true`
-      );
-      
-      if (repoInterface.stdout.trim()) {
+      const repoInterface = await runRg([
+        '-l', `interface I${repoName}`,
+        'src/domain/repositories',
+        '-g', '*.ts'
+      ]);
+      if (repoInterface) {
         relationships.repository = `I${repoName}`;
       }
 
       // 3. Find services using this entity
-      const servicesUsing = await exec(
-        `rg "${entityName}" src/domain/services src/editor/services --files-with-matches -g "*.ts" || true`
-      );
-
-      if (servicesUsing.stdout.trim()) {
-        relationships.services = servicesUsing.stdout
+      const servicesUsing = await runRg([
+        entityName,
+        'src/domain/services',
+        'src/editor/services',
+        '--files-with-matches',
+        '-g', '*.ts'
+      ]);
+      if (servicesUsing) {
+        relationships.services = servicesUsing
           .split('\n')
           .filter(Boolean)
-          .map(file => file.split('/').pop()?.replace('.ts', '') || '');
+          .map(file => file.split(/[/\\]/).pop()?.replace('.ts', '') || '');
       }
 
-      // 4. Find components/containers using this entity (through services/stores)
-      const componentsUsing = await exec(
-        `rg "${entityName}|${repoName}" src/editor/components src/features --files-with-matches -g "*.{ts,tsx}" || true`
-      );
-
-      if (componentsUsing.stdout.trim()) {
-        relationships.usedBy = componentsUsing.stdout
+      // 4. Find components using this entity
+      const componentsUsing = await runRg([
+        `${entityName}|${repoName}`,
+        'src/editor/components',
+        'src/features',
+        '--files-with-matches',
+        '-g', '*.ts',
+        '-g', '*.tsx'
+      ]);
+      if (componentsUsing) {
+        relationships.usedBy = componentsUsing
           .split('\n')
           .filter(Boolean)
-          .map(file => file.split('/').pop()?.replace(/\.(ts|tsx)$/, '') || '');
+          .map(file => file.split(/[/\\]/).pop()?.replace(/\.(ts|tsx)$/, '') || '');
       }
 
-      // Build relationship diagram
+      // Build output
       const lines: string[] = [];
       lines.push(`\n📊 Entity Relationship Map: ${entityName}`);
       lines.push('='.repeat(60));
       lines.push('');
       lines.push('🏛️  Domain Layer:');
-      lines.push(`   └─ Entity: ${entityFile.stdout.trim()}`);
-      
+      lines.push(`   └─ Entity: ${entityFile.split('\n')[0]}`);
       if (relationships.repository) {
         lines.push(`   └─ Repository Interface: ${relationships.repository}`);
       }
@@ -103,17 +116,13 @@ export const getEntityRelationshipsTool = {
 
       if (relationships.services.length > 0) {
         lines.push('⚙️  Application Layer (Services):');
-        relationships.services.forEach(service => {
-          lines.push(`   └─ ${service}`);
-        });
+        relationships.services.forEach(s => lines.push(`   └─ ${s}`));
         lines.push('');
       }
 
       if (relationships.usedBy.length > 0) {
         lines.push('🎨 Presentation Layer (Components):');
-        relationships.usedBy.slice(0, 10).forEach(component => {
-          lines.push(`   └─ ${component}`);
-        });
+        relationships.usedBy.slice(0, 10).forEach(c => lines.push(`   └─ ${c}`));
         if (relationships.usedBy.length > 10) {
           lines.push(`   ... and ${relationships.usedBy.length - 10} more`);
         }
@@ -122,15 +131,9 @@ export const getEntityRelationshipsTool = {
 
       lines.push('📈 Data Flow:');
       lines.push(`   ${entityName} (Domain)`);
-      if (relationships.repository) {
-        lines.push(`   ↓ via ${relationships.repository}`);
-      }
-      if (relationships.services.length > 0) {
-        lines.push(`   ↓ used by ${relationships.services.length} service(s)`);
-      }
-      if (relationships.usedBy.length > 0) {
-        lines.push(`   ↓ consumed by ${relationships.usedBy.length} component(s)`);
-      }
+      if (relationships.repository) lines.push(`   ↓ via ${relationships.repository}`);
+      if (relationships.services.length > 0) lines.push(`   ↓ used by ${relationships.services.length} service(s)`);
+      if (relationships.usedBy.length > 0) lines.push(`   ↓ consumed by ${relationships.usedBy.length} component(s)`);
 
       return {
         content: [{ type: "text", text: lines.join('\n') }],

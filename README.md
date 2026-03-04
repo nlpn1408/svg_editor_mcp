@@ -2,9 +2,9 @@
 
 Custom MCP (Model Context Protocol) server for SVG Editor project. Provides AI-friendly tools to navigate and analyze Clean Architecture codebase.
 
-## Version 2.0.0
+## Version 2.1.0
 
-Refactored to match actual project structure with Clean Architecture layers.
+Cross-platform (Windows compatible), new `get_feature_checklist` tool, expanded architecture violation rules.
 
 ---
 
@@ -82,7 +82,7 @@ find_domain_logic({
 Detect Clean Architecture rule violations.
 
 **Parameters:**
-- `rule` (required): `domain-purity` | `container-presenter` | `di-pattern` | `naming-convention` | `all`
+- `rule` (required): `domain-purity` | `container-presenter` | `di-pattern` | `naming-convention` | `api-base-service` | `import-sdk` | `all`
 
 **Use cases:**
 - Check domain imports infrastructure (violation)
@@ -104,6 +104,8 @@ find_architecture_violations({ rule: "domain-purity" })
 | `container-presenter` | Presenters contain fetch/axios/useQuery |
 | `di-pattern` | Services missing constructor DI |
 | `naming-convention` | Domain interfaces without `I` prefix |
+| `api-base-service` | API services should extend APIBaseService |
+| `import-sdk` | SDK should be imported via package name |
 
 ---
 
@@ -122,6 +124,24 @@ Map dependencies between entity, repository, services, and components.
 ```typescript
 get_entity_relationships({ entityName: "Checkpoint" })
 // Returns: Entity → Repository → Services → Components
+```
+
+---
+
+### 6. `get_feature_checklist`
+Get a feature development checklist for Clean Architecture.
+
+**Parameters:**
+- `featureName` (required): Feature name (e.g., "checkpoint", "asset-upload")
+
+**Use cases:**
+- Add new feature following Domain → Infra → App → UI flow
+- Ensure TDD, Container/Presenter, DI patterns
+
+**Example:**
+```typescript
+get_feature_checklist({ featureName: "asset-upload" })
+// Returns: Checklist with paths and rules
 ```
 
 ---

@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-03-04
+
+### Added
+- `get_feature_checklist` - Feature development checklist (Domain → Infra → App → UI)
+- New `find_architecture_violations` rules: `api-base-service`, `import-sdk`
+
+### Changed
+- **Cross-platform**: Replaced `grep -v` with pure `rg` + Node.js filtering (Windows compatible)
+- `find_violations` uses `execFile` instead of `exec` (no shell, safer)
+- Shared `runRg` util in `src/utils/run-rg.ts`
+- `get_entity_relationships` supports entities in subfolders (e.g., checkpoint/Checkpoint.ts)
+
+### Fixed
+- `grep -v` not available on Windows
+
 ## [2.0.0] - 2026-03-02
 
 ### Added

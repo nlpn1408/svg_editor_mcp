@@ -6,7 +6,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprot
 
 const server = new Server({
   name: "project-architect-mcp",
-  version: "2.0.0",
+  version: "2.1.0",
 }, {
   capabilities: { tools: {} },
 });
@@ -17,6 +17,7 @@ import { searchCodeTool } from "./search_code.js";
 import { findDomainLogicTool } from "./find_domain_logic.js";
 import { findArchitectureViolationsTool } from "./find_violations.js";
 import { getEntityRelationshipsTool } from "./get_entity_relationships.js";
+import { getFeatureChecklistTool } from "./get_feature_checklist.js";
 
 // Define all available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -46,6 +47,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       description: getEntityRelationshipsTool.description,
       inputSchema: getEntityRelationshipsTool.inputSchema as any,
     },
+    {
+      name: getFeatureChecklistTool.name,
+      description: getFeatureChecklistTool.description,
+      inputSchema: getFeatureChecklistTool.inputSchema as any,
+    },
   ],
 }));
 
@@ -70,6 +76,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case getEntityRelationshipsTool.name:
         return await getEntityRelationshipsTool.handler(args as any);
       
+      case getFeatureChecklistTool.name:
+        return await getFeatureChecklistTool.handler(args as any);
+      
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
@@ -88,10 +97,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 const transport = new StdioServerTransport();
 await server.connect(transport);
 
-console.error("✅ Project Architect MCP Server v2.0.0 running...");
+console.error("✅ Project Architect MCP Server v2.1.0 running...");
 console.error("📦 Available tools:");
 console.error("  - search_code: Search by architecture layer");
 console.error("  - get_module_map: Map architecture structure");
 console.error("  - find_domain_logic: Find business logic");
 console.error("  - find_architecture_violations: Detect rule violations");
 console.error("  - get_entity_relationships: Map entity dependencies");
+console.error("  - get_feature_checklist: Feature development checklist");
