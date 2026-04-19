@@ -102,6 +102,18 @@ export const getEntityRelationshipsTool = {
           .map(file => file.split(/[/\\]/).pop()?.replace(/\.(ts|tsx)$/, '') || '');
       }
 
+      // 5. Events emitted by services that use this entity
+      const eventsEmitted: string[] = [];
+      if (servicesUsing) {
+        const serviceFiles = servicesUsing.split('\n').filter(Boolean).slice(0, 5);
+        for (const sf of serviceFiles) {
+          const events = await runRg(['\\.Emit\\(', '--vimgrep', sf]);
+          if (events) {
+            events.split('\n').filter(Boolean).forEach(l => eventsEmitted.push(l));
+          }
+        }
+      }
+
       // Build output
       const lines: string[] = [];
       lines.push(`\n📊 Entity Relationship Map: ${entityName}`);
@@ -129,11 +141,19 @@ export const getEntityRelationshipsTool = {
         lines.push('');
       }
 
+      if (eventsEmitted.length > 0) {
+        lines.push('📤 Events Emitted (by related services):');
+        eventsEmitted.slice(0, 10).forEach(l => lines.push(`   └─ ${l}`));
+        if (eventsEmitted.length > 10) lines.push(`   ... and ${eventsEmitted.length - 10} more`);
+        lines.push('');
+      }
+
       lines.push('📈 Data Flow:');
       lines.push(`   ${entityName} (Domain)`);
       if (relationships.repository) lines.push(`   ↓ via ${relationships.repository}`);
       if (relationships.services.length > 0) lines.push(`   ↓ used by ${relationships.services.length} service(s)`);
       if (relationships.usedBy.length > 0) lines.push(`   ↓ consumed by ${relationships.usedBy.length} component(s)`);
+      if (eventsEmitted.length > 0) lines.push(`   ↓ emits ${eventsEmitted.length} event(s) via EventManager`);
 
       return {
         content: [{ type: "text", text: lines.join('\n') }],

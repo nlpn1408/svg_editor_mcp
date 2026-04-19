@@ -1,212 +1,36 @@
 # Project Architect MCP Server
 
-Custom MCP (Model Context Protocol) server for SVG Editor project. Provides AI-friendly tools to navigate and analyze Clean Architecture codebase.
+MCP (Model Context Protocol) server for navigating **Clean Architecture** codebases. Provides AI tools to trace events, validate feature layers, detect architecture violations, and map dependencies — without needing native file access.
 
-## Version 2.1.0
+## Version 3.0.0
 
-Cross-platform (Windows compatible), new `get_feature_checklist` tool, expanded architecture violation rules.
-
----
-
-## 🛠️ Available Tools
-
-### 1. `search_code`
-Search code by Clean Architecture layer.
-
-**Parameters:**
-- `query` (required): Search term or regex
-- `layer` (optional): `domain` | `infrastructure` | `application` | `presentation` | `systems` | `features` | `all`
-- `fileType` (optional): `ts` | `tsx` | `js` | `jsx` | `all`
-
-**Use cases:**
-- Find all usages of a function across layers
-- Search within specific architecture layer
-- Filter by file type
-
-**Example:**
-```typescript
-search_code({ 
-  query: "CheckpointEntity", 
-  layer: "domain" 
-})
-```
+9 tools optimized for Clean Architecture projects (Domain / Infrastructure / Application / Presentation layers).
 
 ---
 
-### 2. `get_module_map`
-Map architecture structure by layer or feature.
+## 🚀 Quick Start
 
-**Parameters:**
-- `target` (required): `domain` | `infrastructure` | `application` | `presentation` | `systems` | feature name
-- `detailed` (optional): Include file details (default: false for token efficiency)
-
-**Use cases:**
-- Understand folder structure
-- List all entities in domain layer
-- Map feature components
-
-**Example:**
-```typescript
-get_module_map({ target: "domain" })
-// Returns: entities, repositories, services
-
-get_module_map({ target: "chat-ai" })
-// Returns: feature structure
-```
-
----
-
-### 3. `find_domain_logic`
-Find business logic in entities and services.
-
-**Parameters:**
-- `query` (required): Business logic to search
-- `type` (optional): `entity` | `service` | `all`
-
-**Use cases:**
-- Find where business rules are implemented
-- Locate aggregate roots
-- Search domain services
-
-**Example:**
-```typescript
-find_domain_logic({ 
-  query: "calculate score", 
-  type: "entity" 
-})
-```
-
----
-
-### 4. `find_architecture_violations`
-Detect Clean Architecture rule violations.
-
-**Parameters:**
-- `rule` (required): `domain-purity` | `container-presenter` | `di-pattern` | `naming-convention` | `api-base-service` | `import-sdk` | `all`
-
-**Use cases:**
-- Check domain imports infrastructure (violation)
-- Detect data fetching in Presenter components
-- Find services without constructor DI
-- Verify domain interfaces have `I` prefix
-
-**Example:**
-```typescript
-find_architecture_violations({ rule: "domain-purity" })
-// Checks: Domain importing infra/editor
-```
-
-**Rules checked:**
-
-| Rule | Checks |
-|------|--------|
-| `domain-purity` | Domain importing infrastructure/editor/external libs |
-| `container-presenter` | Presenters contain fetch/axios/useQuery |
-| `di-pattern` | Services missing constructor DI |
-| `naming-convention` | Domain interfaces without `I` prefix |
-| `api-base-service` | API services should extend APIBaseService |
-| `import-sdk` | SDK should be imported via package name |
-
----
-
-### 5. `get_entity_relationships`
-Map dependencies between entity, repository, services, and components.
-
-**Parameters:**
-- `entityName` (required): Entity name (e.g., "CheckpointEntity" or "Checkpoint")
-
-**Use cases:**
-- Understand data flow for an entity
-- See which services use an entity
-- Find components consuming an entity
-
-**Example:**
-```typescript
-get_entity_relationships({ entityName: "Checkpoint" })
-// Returns: Entity → Repository → Services → Components
-```
-
----
-
-### 6. `get_feature_checklist`
-Get a feature development checklist for Clean Architecture.
-
-**Parameters:**
-- `featureName` (required): Feature name (e.g., "checkpoint", "asset-upload")
-
-**Use cases:**
-- Add new feature following Domain → Infra → App → UI flow
-- Ensure TDD, Container/Presenter, DI patterns
-
-**Example:**
-```typescript
-get_feature_checklist({ featureName: "asset-upload" })
-// Returns: Checklist with paths and rules
-```
-
----
-
-## 🏗️ Architecture Mapping
-
-The MCP server understands project structure:
-
-```
-src/
-├── domain/              → Pure logic (entities, I* interfaces, services)
-├── infrastructure/      → Repository implementations, mappers
-├── editor/
-│   ├── services/        → API services, domain services
-│   ├── components/      → UI components (Container/Presenter)
-│   └── stores/          → Zustand stores
-├── systems/             → Core systems (Singleton)
-├── features/            → Feature modules
-├── utils/commanders/    → Command pattern
-└── workers/             → Web workers
-```
-
----
-
-## 🚀 Setup & Usage
-
-### Prerequisites
-- Node.js 18+
-- ripgrep (`rg`) installed and in PATH
-
-### Build & Run
-
-```bash
-# Clone the repository
-git clone https://github.com/nlpn1408/svg_editor_mcp.git
-cd svg_editor_mcp
-
-# Install dependencies
-npm install
-
-# Build TypeScript
-npm run build
-
-# Test server
-node dist/mcp-server.js
-```
-
-### Configure in Cursor
-
-Add to MCP settings (Ctrl+Shift+P → "Preferences: Open Settings (JSON)"):
-
-**Option 1: Use from GitHub (Recommended - No local setup needed)**
+### Option 1: npx from GitHub (no install needed)
 
 ```json
 {
   "mcpServers": {
     "svg-editor-mcp": {
       "command": "npx",
-      "args": ["-y", "github:nlpn1408/svg_editor_mcp"]
+      "args": ["-y", "github:nlpn1408/svg_editor_mcp"],
+      "cwd": "/absolute/path/to/your/project"
     }
   }
 }
 ```
 
-**Option 2: Use local build**
+### Option 2: Local build
+
+```bash
+git clone https://github.com/nlpn1408/svg_editor_mcp.git
+cd svg_editor_mcp
+npm install && npm run build
+```
 
 ```json
 {
@@ -220,125 +44,208 @@ Add to MCP settings (Ctrl+Shift+P → "Preferences: Open Settings (JSON)"):
 }
 ```
 
-Replace:
-- `/absolute/path/to/svg_editor_mcp/` with your actual clone path
-- `/absolute/path/to/your/project` with your project root where you want to use the MCP
-
-Example (Windows):
-```json
-{
-  "mcpServers": {
-    "svg-editor-mcp": {
-      "command": "node",
-      "args": ["C:/Users/YourName/projects/svg_editor_mcp/dist/mcp-server.js"],
-      "cwd": "C:/Users/YourName/projects/my-clean-architecture-app"
-    }
-  }
-}
-```
-
-**Important:** Restart Cursor after adding config!
+> **Important:** `cwd` must point to your project root (where `src/` lives). Restart your AI client after adding config.
 
 ---
 
-## 💡 Use Cases
+## 🛠️ Tools (9 total)
 
-### Code Navigation
+### Navigation & Structure
+
+#### `get_module_map`
+Map architecture structure by layer or feature.
+
 ```typescript
-// Find all CheckpointEntity usages
-search_code({ query: "CheckpointEntity", layer: "all" })
-
-// Map domain structure
 get_module_map({ target: "domain" })
+// → lists entities, repository interfaces, domain services
+
+get_module_map({ target: "chat-ai" })
+// → lists feature folder structure
 ```
+
+#### `get_entity_relationships`
+Map full dependency chain: Entity → Repository → Services → Components → Events emitted.
+
+```typescript
+get_entity_relationships({ entityName: "Checkpoint" })
+```
+
+---
+
+### Event-Driven Debugging
+
+#### `get_event_flow` ⭐
+Trace EventManager event flow — find all `Emit()` and `Subscribe()` usages for an event in one call.
+
+```typescript
+get_event_flow({ eventName: "CHECKPOINT:PROPERTY_UPDATED" })
+// → shows all emitters and subscribers with file:line references
+
+get_event_flow({ eventName: "CHECKPOINT" })
+// → matches all checkpoint-related events (partial match)
+```
+
+---
 
 ### Architecture Validation
+
+#### `find_architecture_violations`
+Detect Clean Architecture rule violations.
+
 ```typescript
-// Check for violations
 find_architecture_violations({ rule: "all" })
-
-// Verify domain purity
-find_architecture_violations({ rule: "domain-purity" })
+find_architecture_violations({ rule: "domain-purity" })       // domain importing infra
+find_architecture_violations({ rule: "container-presenter" }) // fetch in Presenter
+find_architecture_violations({ rule: "di-pattern" })          // missing constructor DI
+find_architecture_violations({ rule: "naming-convention" })   // I* prefix on interfaces
+find_architecture_violations({ rule: "api-base-service" })    // API service not extending base
+find_architecture_violations({ rule: "import-sdk" })          // SDK import path
+find_architecture_violations({ rule: "command-location" })    // Commands outside utils/commanders
+find_architecture_violations({ rule: "store-devtools" })      // Zustand store missing devtools
+find_architecture_violations({ rule: "direct-instantiation"}) // new Service() in UI layer
 ```
 
-### Understanding Relationships
+#### `validate_feature_complete` ⭐
+Check if a feature has all 9 Clean Architecture layers implemented. Critical for TDD.
+
 ```typescript
-// Understand Checkpoint flow
-get_entity_relationships({ entityName: "Checkpoint" })
-
-// Find TriggerEntity business logic
-find_domain_logic({ query: "TriggerEntity", type: "entity" })
+validate_feature_complete({ featureName: "checkpoint" })
+// Output:
+//   ✅ Entity (CheckpointEntity)     → src/domain/entities/checkpoint/Checkpoint.ts
+//   ✅ IRepository                   → src/domain/repositories/ICheckpointRepository.ts
+//   ❌ Repository impl               → NOT FOUND
+//   ✅ Mapper                        → src/infrastructure/...
+//   ✅ API Service                   → src/editor/services/APICheckpointService.ts
+//   ✅ Zustand Store                 → src/editor/stores/...
+//   ✅ Container                     → src/editor/components/.../CheckpointContainer.tsx
+//   ✅ Presenter                     → ...
+//   ❌ Tests                         → NOT FOUND
 ```
 
-### Feature Development
+#### `find_missing_tests` ⭐
+Find domain entities, services, and Commands that have no corresponding test files.
+
 ```typescript
-// Map feature structure before modifying
-get_module_map({ target: "chat-ai" })
-
-// Find existing service patterns
-find_domain_logic({ query: "Service", type: "service" })
+find_missing_tests({ scope: "all" })     // entities + services + commands
+find_missing_tests({ scope: "domain" })  // entities + services only
+find_missing_tests({ scope: "commands"}) // undo/redo commands only
 ```
 
 ---
 
-## 🎯 Token Optimization
+### Tracing Specific Patterns
 
-Tools are optimized for minimal token usage:
+#### `get_command_trace`
+Trace a Command in the undo/redo system: definition, execute/undo logic, callers, events emitted.
 
-- **Max results limited** (10-20 per search)
-- **Max columns** (200 chars per line)
-- **Filtered results** (exclude tests, node_modules)
-- **Structured output** (clear categorization)
-- **Default: non-detailed** (summaries only)
+```typescript
+get_command_trace({ commandName: "UpdateCheckpointPropertyCommand" })
+// → file location, execute() snippet, undo() snippet, events emitted, all History.execute() call sites
+```
 
----
+#### `get_store_consumers`
+Find all components and hooks consuming a Zustand store.
 
-## 🔄 Version History
+```typescript
+get_store_consumers({ storeName: "AssetStore" })
+// → store definition, state field sample, every consumer file with usage count
+```
 
-### v2.0.0 (Current)
-- ✅ Refactored to match Clean Architecture structure
-- ✅ Removed hardcoded `src/modules/` paths
-- ✅ Added layer-based search
-- ✅ Implemented `find_domain_logic`
-- ✅ Added `find_architecture_violations`
-- ✅ Added `get_entity_relationships`
-- ✅ Token-optimized outputs
+#### `get_api_surface`
+Map API services extending APIBaseService.
 
-### v1.0.0 (Deprecated)
-- ❌ Had hardcoded structure (`src/modules/`)
-- ❌ Didn't work with actual project
-- ❌ Missing implementations
+```typescript
+get_api_surface({ serviceName: "all" })
+// → lists all API services with file paths
 
----
-
-## 🐛 Troubleshooting
-
-### Tool returns "not found"
-- Check `ripgrep` is installed: `rg --version`
-- Verify working directory is project root
-- Check file paths match your structure
-
-### No results for entity search
-- Try with/without "Entity" suffix
-- Check entity exists in `src/domain/entities/`
-- Use `get_module_map({ target: "domain" })` to list entities
-
-### Architecture violations not detected
-- Rules use regex patterns, may need tuning
-- Some violations require manual review
-- Refer to `CLAUDE.md` for architecture rules
+get_api_surface({ serviceName: "APIAssetsService" })
+// → public methods, all components/hooks that consume this service
+```
 
 ---
 
-## 📚 References
+## 📁 Expected Project Structure
 
-- Architecture rules: `CLAUDE.md`
-- Domain map: `.context/DOMAIN_MAP.md`
-- DI patterns: `.context/DEPS_INJECTION.md`
-- MCP Protocol: https://modelcontextprotocol.io/
+Works with Clean Architecture projects using this layout:
+
+```
+your-project/
+└── src/
+    ├── domain/
+    │   ├── entities/        # Domain entities (BaseEntity<T>)
+    │   ├── repositories/    # I* interfaces
+    │   └── services/        # Pure domain services
+    ├── infrastructure/
+    │   └── repositories/    # Concrete implementations + mappers
+    ├── editor/
+    │   ├── services/        # API services (extend APIBaseService)
+    │   ├── components/      # Container / Presenter components
+    │   └── stores/          # Zustand stores
+    ├── systems/             # Core systems (Singleton)
+    ├── features/            # Feature modules
+    └── utils/commanders/    # Command pattern (undo/redo)
+```
 
 ---
 
-**Status:** ✅ Production Ready  
-**Last Updated:** 2026-03  
-**Maintainer:** Project Team
+## ⚙️ Requirements
+
+- **Node.js** 18+
+- **ripgrep** (`rg`) in PATH
+
+```bash
+# macOS
+brew install ripgrep
+
+# Ubuntu/Debian
+sudo apt install ripgrep
+
+# Windows
+# Download from https://github.com/BurntSushi/ripgrep/releases
+# and add to PATH
+```
+
+Verify: `rg --version`
+
+---
+
+## 🗺️ Tool Selection Guide
+
+| I want to...                                 | Use                          |
+|----------------------------------------------|------------------------------|
+| Trace why an event isn't firing              | `get_event_flow`             |
+| Check if a new feature is fully implemented  | `validate_feature_complete`  |
+| Find untested domain code before a PR        | `find_missing_tests`         |
+| Understand how undo works for a feature      | `get_command_trace`          |
+| Find what breaks if I change a store         | `get_store_consumers`        |
+| See all API endpoints for a service          | `get_api_surface`            |
+| Audit codebase for architecture violations   | `find_architecture_violations` |
+| Understand full data flow for an entity      | `get_entity_relationships`   |
+| See what files exist in a layer              | `get_module_map`             |
+
+---
+
+## 🔄 Changelog
+
+### v3.0.0
+- ✅ Added `get_event_flow` — EventManager trace (emitters + subscribers)
+- ✅ Added `validate_feature_complete` — 9-layer feature completeness check
+- ✅ Added `find_missing_tests` — TDD coverage gap detector
+- ✅ Added `get_command_trace` — undo/redo command tracer
+- ✅ Added `get_store_consumers` — Zustand store consumer finder
+- ✅ Added `get_api_surface` — API service mapper
+- ✅ `find_architecture_violations` — added `command-location`, `store-devtools`, `direct-instantiation` rules
+- ✅ `get_entity_relationships` — added events emitted section
+- ❌ Removed `search_code`, `find_domain_logic`, `get_feature_checklist` (redundant for Claude Code)
+
+### v2.1.0
+- Added `get_feature_checklist`, expanded violation rules, Windows compatibility
+
+### v2.0.0
+- Refactored to match Clean Architecture structure, added layer-based search
+
+---
+
+## 📄 License
+
+MIT

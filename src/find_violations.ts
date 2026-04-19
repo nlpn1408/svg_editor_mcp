@@ -2,7 +2,7 @@ import { runRg } from './utils/run-rg.js';
 
 export const findArchitectureViolationsTool = {
   name: "find_architecture_violations",
-  description: "Detect violations of Clean Architecture rules (e.g., domain importing infrastructure, business logic in components, missing DI patterns).",
+  description: "Detect violations of Clean Architecture rules (e.g., domain importing infrastructure, business logic in components, missing DI patterns, direct service instantiation).",
   inputSchema: {
     type: "object",
     properties: {
@@ -15,9 +15,12 @@ export const findArchitectureViolationsTool = {
           "naming-convention",
           "api-base-service",
           "import-sdk",
+          "command-location",
+          "store-devtools",
+          "direct-instantiation",
           "all"
         ],
-        description: "Architecture rule to check"
+        description: "Architecture rule to check. New: 'command-location', 'store-devtools', 'direct-instantiation'"
       }
     },
     required: ["rule"]
@@ -147,6 +150,73 @@ export const findArchitectureViolationsTool = {
           violations.push('⚠️  SDK should be: import { X } from "game-settings-sdk"');
           violations.push(badMatches.slice(0, 10).join('\n'));
           violations.push('');
+        }
+      }
+
+      if (rule === 'command-location' || rule === 'all') {
+        // Commands extending Command base should live in src/utils/commanders/
+        const allCommandFiles = await runRg([
+          'extends Command\\b',
+          'src',
+          '--vimgrep',
+          '-g', '*.ts',
+        ]);
+        const misplacedCommands = allCommandFiles
+          .split('\n')
+          .filter(line => line && !line.includes('utils/commanders') && !line.includes('utils\\commanders'));
+        if (misplacedCommands.length > 0) {
+          violations.push('❌ Command Location Violation:');
+          violations.push('Command subclasses found outside src/utils/commanders/:');
+          violations.push(misplacedCommands.join('\n'));
+          violations.push('');
+        }
+      }
+
+      if (rule === 'store-devtools' || rule === 'all') {
+        // Zustand stores should always wrap with devtools()
+        const storeFiles = await runRg([
+          'create<',
+          'src/editor/stores',
+          'src/editor/components',
+          '--files-with-matches',
+          '-g', '*.ts',
+          '-g', '*.tsx',
+        ]);
+        const files = storeFiles.split('\n').filter(Boolean);
+        const missingDevtools: string[] = [];
+        for (const f of files.slice(0, 20)) {
+          const hasDevtools = await runRg(['devtools\\(', f]);
+          if (!hasDevtools) missingDevtools.push(f);
+        }
+        if (missingDevtools.length > 0) {
+          violations.push('⚠️  Stores missing devtools() middleware:');
+          violations.push('Pattern: create<T>()(devtools((set) => ({ ... }), { name }))');
+          violations.push(missingDevtools.join('\n'));
+          violations.push('');
+        }
+      }
+
+      if (rule === 'direct-instantiation' || rule === 'all') {
+        // Services should be singletons — direct `new SomeService()` in UI/hooks is a violation
+        const directNew = await runRg([
+          'new \\w+Service\\(',
+          'src/editor/components',
+          'src/features',
+          '--vimgrep',
+          '-g', '*.ts',
+          '-g', '*.tsx',
+        ]);
+        if (directNew) {
+          const filtered = directNew.split('\n').filter(l =>
+            // Allow test files and DI setup files
+            l && !l.includes('.test.') && !l.includes('.spec.') && !l.includes('CoreEngine')
+          );
+          if (filtered.length > 0) {
+            violations.push('❌ Direct Instantiation Violation:');
+            violations.push('Services instantiated directly in UI — use DI via constructor or singleton:');
+            violations.push(filtered.slice(0, 15).join('\n'));
+            violations.push('');
+          }
         }
       }
 
